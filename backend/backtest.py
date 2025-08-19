@@ -44,3 +44,18 @@ def download_data_yfinance(ticker: str, start_date: str, end_date: str) -> pd.Da
         raise ValueError(f"Failed to fetch data from yfinance: {str(e)}")
 
 
+def execute_strategy(code: str, df: pd.DataFrame) -> pd.DataFrame:
+    df_copy = df.copy()
+    namespace = {'df': df_copy, 'pd': pd}
+    exec(code, namespace)
+    
+    if 'strategy' not in namespace:
+        raise ValueError("Strategy code must define a function named 'strategy'")
+    
+    strategy_func = namespace['strategy']
+    result_df = strategy_func(df_copy)
+    
+    if 'Signal' not in result_df.columns:
+        raise ValueError("Strategy function must return a dataframe with a 'Signal' column")
+    
+    return result_df
