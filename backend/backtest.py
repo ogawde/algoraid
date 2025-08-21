@@ -1,8 +1,12 @@
 import os
 import pandas as pd
-from typing import Dict, List
-from datetime import datetime
+from typing import Dict
 
+try:
+    from twelvedata import TDClient
+    TWELVE_DATA_AVAILABLE = True
+except ImportError:
+    TWELVE_DATA_AVAILABLE = False
 
 try:
     import yfinance as yf
@@ -11,10 +15,42 @@ except ImportError:
     YFINANCE_AVAILABLE = False
 
 
+def download_data_twelvedata(ticker: str, start_date: str, end_date: str, api_key: str) -> pd.DataFrame:
+    if not TWELVE_DATA_AVAILABLE:
+        raise ImportError(
+            "twelvedata package not installed. Install with: pip install twelvedata")
+
+    td = TDClient(apikey=api_key)
+
+    try:
+        ts = td.time_series(
+            symbol=ticker,
+            interval="1day",
+            start_date=start_date,
+            end_date=end_date,
+            outputsize=5000
+        )
+
+        df = ts.as_pandas()
+
+        if df.empty:
+            raise ValueError(
+                f"No data found for ticker {ticker} in date range {start_date} to {end_date}")
+
+        df.reset_index(inplace=True)
+        df.columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']
+        df['Date'] = pd.to_datetime(df['Date'])
+
+        return df[['Date', 'Open', 'High', 'Low', 'Close', 'Volume']]
+
+    except Exception as e:
+        raise ValueError(f"Failed to fetch data from Twelve Data: {str(e)}")
+
+
 def download_data_yfinance(ticker: str, start_date: str, end_date: str) -> pd.DataFrame:
-    """Download historical stock data using yfinance (fallback)"""
     if not YFINANCE_AVAILABLE:
-        raise ImportError("yfinance issue")
+        raise ImportError(
+            "yfinance package not installed. Install with: pip install yfinance")
 
     try:
         stock = yf.Ticker(ticker)
@@ -25,7 +61,6 @@ def download_data_yfinance(ticker: str, start_date: str, end_date: str) -> pd.Da
                 f"No data found for ticker {ticker} in date range {start_date} to {end_date}")
 
         df.reset_index(inplace=True)
-
         df.columns = [col.replace(' ', '_') for col in df.columns]
 
         if 'Date' not in df.columns and 'Datetime' in df.columns:
@@ -40,6 +75,25 @@ def download_data_yfinance(ticker: str, start_date: str, end_date: str) -> pd.Da
 
     except Exception as e:
         raise ValueError(f"Failed to fetch data from yfinance: {str(e)}")
+
+
+def download_data(ticker: str, start_date: str, end_date: str) -> pd.DataFrame:
+    api_key = os.getenv('TWELVE_DATA_API_KEY')
+
+    if api_key and TWELVE_DATA_AVAILABLE:
+        try:
+            return download_data_twelvedata(ticker, start_date, end_date, api_key)
+        except Exception as e:
+            print(f"Twelve Data failed: {e}, falling back to yfinance...")
+
+    if YFINANCE_AVAILABLE:
+        return download_data_yfinance(ticker, start_date, end_date)
+    else:
+        raise ImportError(
+            "No data source available. Either:\n"
+            "1. Set TWELVE_DATA_API_KEY environment variable and install: pip install twelvedata\n"
+            "2. Or install yfinance: pip install yfinance"
+        )
 
 
 def execute_strategy(code: str, df: pd.DataFrame) -> pd.DataFrame:
