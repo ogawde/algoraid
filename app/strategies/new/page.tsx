@@ -28,53 +28,34 @@ export default function NewStrategyPage() {
   const [ticker, setTicker] = useState('AAPL')
   const [startDate, setStartDate] = useState('2023-01-01')
   const [endDate, setEndDate] = useState('2023-12-31')
-  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
     setLoading(true)
 
-    try {
-      const response = await fetch('http://localhost:8000/api/strategies', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name,
-          code,
-          ticker,
-          start_date: startDate,
-          end_date: endDate,
-        }),
-      })
+    const response = await fetch('http://localhost:8000/api/strategies', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name,
+        code,
+        ticker,
+        start_date: startDate,
+        end_date: endDate,
+      }),
+    })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Failed to create strategy')
-      }
-
-      const data = await response.json()
-      router.push(`/results/${data.backtest_id}`)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
-      console.error('Error:', err)
-    } finally {
-      setLoading(false)
-    }
+    const data = await response.json()
+    router.push(`/results/${data.backtest_id}`)
+    setLoading(false)
   }
 
   return (
     <div className="container mx-auto p-8 max-w-4xl">
       <h1 className="text-3xl font-bold mb-6">Create New Strategy</h1>
-
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded text-red-700">
-          {error}
-        </div>
-      )}
 
       <Card>
         <CardHeader>
