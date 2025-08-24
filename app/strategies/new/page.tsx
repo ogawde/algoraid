@@ -4,7 +4,13 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 const TICKERS = ['AAPL', 'TSLA', 'SPY', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'NFLX', 'AMD']
@@ -101,11 +107,16 @@ export default function NewStrategyPage() {
                   onValueChange={setTicker}
                   required
                 >
-                  {TICKERS.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
+                  <SelectTrigger id="ticker" className="w-full">
+                    <SelectValue placeholder="Select a ticker" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TICKERS.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
 
